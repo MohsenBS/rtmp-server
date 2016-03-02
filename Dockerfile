@@ -1,5 +1,5 @@
 FROM debian:jessie
-MAINTAINER Mohen Sarmadi "MohsenBS@users.noreply.github.com"
+MAINTAINER Mohsen Sarmadi "MohsenBS@users.noreply.github.com"
 WORKDIR /home/builder/
 
 ENV NGINX_VERSION=1.9.11
@@ -7,7 +7,8 @@ ENV NGINX_VERSION=1.9.11
 RUN apt-get update && \
     apt-get -qq install \
     build-essential unzip wget libpcre3 \
-    libpcre3-dev libssl-dev openssl
+    libpcre3-dev libssl-dev openssl \
+    ffmpeg
 
 RUN wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
     tar -xvzf  nginx-${NGINX_VERSION}.tar.gz  && \
@@ -15,13 +16,17 @@ RUN wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
     wget https://github.com/arut/nginx-rtmp-module/archive/master.zip && \
     unzip master.zip && \
     rm master.zip
+RUN useradd --user-group \
+    --create-home \
+    --shell /bin/bash nginx \
+    --base-dir /home
 
 RUN cd ./nginx-${NGINX_VERSION} && \
     ./configure \
     --add-module=../nginx-rtmp-module-master   \
     --user=nginx                               \
     --group=nginx                              \
-    --prefix=/etc/nginx                        \
+    --prefix=/home/nginx/app                   \
     --sbin-path=/usr/sbin/nginx                \
     --conf-path=/etc/nginx/nginx.conf          \
     --pid-path=/var/run/nginx.pid              \
@@ -44,6 +49,12 @@ COPY nginx.conf /etc/nginx/nginx.conf
 
 RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log
+
+RUN chown -R nginx:nginx /home/nginx/ && \
+    echo "Hello World!!" > /home/nginx/app/index.html
+USER nginx
+ENV HOME /home/nginx
+WORKDIR /home/node/app
 
 EXPOSE 80 443 1935
 
